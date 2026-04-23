@@ -1,0 +1,27 @@
+corpus:
+  path: data/ru-fr_interference
+
+acoustic:
+  max_formant_female: 5000
+  max_formant_male: 4500
+  n_formants: 5
+
+whisper:
+  model: openai/whisper-medium
+  layers:
+    - 4    # lower half
+    - 20   # upper half
+
+xlsr:
+  model: facebook/wav2vec2-large-xlsr-53
+  layers:
+    - 4    # lower third
+    - 10   # middle third
+    - 20   # upper third
+
+pca:
+  n_components_visualisation: 2
+  n_components_clustering: 50
+
+distance:
+  metric: cosine

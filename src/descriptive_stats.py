@@ -38,6 +38,12 @@ valid_phonemes = phoneme_counts[phoneme_counts >= MIN_TOKENS].index
 df = df[df["phoneme"].isin(valid_phonemes)]
 print(f"Keeping {df['phoneme'].nunique()} phonemes with >={MIN_TOKENS} tokens")
 
+# exclude non-French phonemes
+EXCLUDE = {"ə̰"}
+df = df[~df["phoneme"].isin(EXCLUDE)]
+print(f"After excluding non-French phonemes: {df['phoneme'].nunique()} phonemes")
+print(f"Final phonemes: {sorted(df['phoneme'].unique())}")
+
 # define groups
 df["group"] = df["l1_status"] + "/" + df["gender"].str.upper()
 
@@ -57,19 +63,22 @@ print("\n── Summary table (F1_norm per phoneme per group) ──")
 rows = []
 for phoneme in sorted(df["phoneme"].unique()):
     for group in GROUPS:
-        sub = df[(df["phoneme"] == phoneme) & (df["group"] == group)]["f1_norm"]
-        if len(sub) < 3:
-            continue
-        rows.append({
-            "phoneme": phoneme,
-            "group":   group,
-            "n":       len(sub),
-            "mean":    sub.mean(),
-            "median":  sub.median(),
-            "std":     sub.std(),
-            "IQR":     sub.quantile(0.75) - sub.quantile(0.25),
-            "CV":      sub.std() / abs(sub.mean()) if sub.mean() != 0 else np.nan,
-        })
+        for formant, col in [("f1_norm", "F1"), ("f2_norm", "F2")]:
+            sub = df[(df["phoneme"] == phoneme) &
+                     (df["group"] == group)][formant]
+            if len(sub) < 3:
+                continue
+            rows.append({
+                "phoneme": phoneme,
+                "group":   group,
+                "formant": col,
+                "n":       len(sub),
+                "mean":    sub.mean(),
+                "median":  sub.median(),
+                "std":     sub.std(),
+                "IQR":     sub.quantile(0.75) - sub.quantile(0.25),
+                "CV":      sub.std() / abs(sub.mean()) if sub.mean() != 0 else np.nan,
+            })
 
 summary_df = pd.DataFrame(rows)
 summary_df.to_csv(f"{OUTPUT_DIR}/summary_table.csv", index=False)
@@ -147,11 +156,14 @@ for group in GROUPS:
         y = sub["f1_norm"].values
         # centroid
         ax.scatter(x.mean(), y.mean(),
-                   color=COLORS[group], s=60, zorder=5)
+                   color=COLORS[group], s=20, zorder=5)
         ax.annotate(
             phoneme,
             (x.mean(), y.mean()),
-            fontsize=8, ha="center", va="bottom"
+            xytext=(5, 8),
+            textcoords="offset points",
+            fontsize=8, ha="left", va="bottom",
+            fontweight="bold"
         )
         # confidence ellipse
         confidence_ellipse(
@@ -163,8 +175,7 @@ for group in GROUPS:
             linewidth=1.2
         )
 
-# IPA convention: invert both axes
-ax.invert_xaxis()
+# IPA convention: invert axis
 ax.invert_yaxis()
 ax.set_xlabel("F2 (Lobanov normalised)", fontsize=12)
 ax.set_ylabel("F1 (Lobanov normalised)", fontsize=12)

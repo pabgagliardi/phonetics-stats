@@ -150,31 +150,32 @@ for rep_name, paths in REPS.items():
 
         print(f"  {method}: 3 plots saved")
 
-    # ── between-class variance ratio (PCA-2D) ─────────────────────
-    data      = np.load(paths["pca2"])
-    X_full    = data["features"]
-    token_ids = data["token_ids"]
-    mask      = np.isin(token_ids, df.index)
-    X         = X_full[mask]
-    tids      = token_ids[mask]
-    meta      = df.loc[tids]
+# ── between-class variance ratio (PCA-2D and UMAP-2D) ─────────
+    for method_name, method_key in [("PCA-2D", "pca2"), ("UMAP-2D", "umap2")]:
+        data      = np.load(paths[method_key])
+        X_full    = data["features"]
+        token_ids = data["token_ids"]
+        mask      = np.isin(token_ids, df.index)
+        X         = X_full[mask]
+        tids      = token_ids[mask]
+        meta      = df.loc[tids]
 
-    total_var = X.var(axis=0).sum()
-    phoneme_means = np.array([
-        X[meta["phoneme"].values == p].mean(axis=0)
-        for p in PHONEMES
-        if (meta["phoneme"].values == p).sum() > 0
-    ])
-    between_var = phoneme_means.var(axis=0).sum()
-    ratio = between_var / total_var
+        total_var     = X.var(axis=0).sum()
+        phoneme_means = np.array([
+            X[meta["phoneme"].values == p].mean(axis=0)
+            for p in PHONEMES
+            if (meta["phoneme"].values == p).sum() > 0
+        ])
+        between_var = phoneme_means.var(axis=0).sum()
+        ratio       = between_var / total_var
 
-    variance_ratios.append({
-        "representation": rep_name,
-        "method": "PCA-2D",
-        "between_class_var_ratio": round(ratio, 4),
-    })
-    print(f"  Between-class variance ratio (PCA-2D): {ratio:.4f}")
-
+        variance_ratios.append({
+            "representation":         rep_name,
+            "method":                 method_name,
+            "between_class_var_ratio": round(ratio, 4),
+        })
+        print(f"  Between-class variance ratio ({method_name}): {ratio:.4f}")
+        
     # ── cosine similarity ratio (PCA-50D) ─────────────────────────
     data50    = np.load(paths["pca50"])
     X50_full  = data50["features"]

@@ -9,15 +9,15 @@ acoustic:
 whisper:
   model: openai/whisper-medium
   layers:
-    - 4    # lower half
-    - 20   # upper half
+    - 4
+    - 20
 
 xlsr:
   model: facebook/wav2vec2-large-xlsr-53
   layers:
-    - 4    # lower third
-    - 10   # middle third
-    - 20   # upper third
+    - 4
+    - 10
+    - 20
 
 pca:
   n_components_visualisation: 2
@@ -25,3 +25,18 @@ pca:
 
 distance:
   metric: cosine
+
+clustering:
+  min_tokens: 10
+  french_vowels:
+    - a
+    - e
+    - i
+    - o
+    - u
+    - y
+    - ø
+    - ɑ
+    - ə
+    - ɛ
+    - ɑ̃

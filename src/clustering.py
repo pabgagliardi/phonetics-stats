@@ -205,6 +205,15 @@ df_cons_raw = df_cons_raw.rename(
     columns={"f1": "f1_norm", "f2": "f2_norm"}
 )
 
+# ── check which consonants are actually in the corpus ─────────────
+print("Checking consonant availability in corpus...")
+df_all_check = pd.read_csv("data/features_acoustic.csv")
+all_phones_in_corpus = df_all_check["phoneme"].unique()
+print(f"All phonemes in corpus: {sorted(all_phones_in_corpus)}")
+for c in CONSONANTS:
+    count = (df_all_check["phoneme"] == c).sum()
+    print(f"  /{c}/: {count} tokens")
+
 # per-phoneme means
 phone_means_vowels = df_vowels_n.groupby("phoneme")[
     ["f1_norm", "f2_norm"]

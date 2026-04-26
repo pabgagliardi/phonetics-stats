@@ -175,7 +175,7 @@ for rep_name, paths in REPS.items():
             "between_class_var_ratio": round(ratio, 4),
         })
         print(f"  Between-class variance ratio ({method_name}): {ratio:.4f}")
-        
+
     # ── cosine similarity ratio (PCA-50D) ─────────────────────────
     data50    = np.load(paths["pca50"])
     X50_full  = data50["features"]
@@ -230,4 +230,73 @@ sim_df = pd.DataFrame(similarity_ratios)
 sim_df.to_csv(f"{OUTPUT_DIR}/neural_similarity_ratios.csv", index=False)
 print(f"Saved neural_similarity_ratios.csv")
 
+# ══════════════════════════════════════════════════════════════════
+# Extra: per-speaker plots for high inter-speaker variability vowels
+# ══════════════════════════════════════════════════════════════════
+TARGET_PHONEMES = ["ø", "o", "i", "a"]  # high vs low inter-speaker
+
+speakers       = sorted(df["speaker_id"].unique())
+n_spk          = len(speakers)
+SPEAKER_COLORS = plt.cm.tab20(np.linspace(0, 1, n_spk))
+SPK_CMAP       = dict(zip(speakers, SPEAKER_COLORS))
+
+for model_name, umap_path in [
+    ("XLS-R layer 20",  "data/features_xlsr_layer20_umap2.npz"),
+    ("Whisper layer 20", "data/features_whisper_layer20_umap2.npz"),
+]:
+    data      = np.load(umap_path)
+    X_full    = data["features"]
+    token_ids = data["token_ids"]
+    mask      = np.isin(token_ids, df.index)
+    X         = X_full[mask]
+    tids      = token_ids[mask]
+    meta_u    = df.loc[tids]
+
+    fig, axes = plt.subplots(1, len(TARGET_PHONEMES),
+                              figsize=(16, 4))
+
+    for ax, phoneme in zip(axes, TARGET_PHONEMES):
+        ph_mask = meta_u["phoneme"].values == phoneme
+        X_ph    = X[ph_mask].copy()
+        spk_ph  = meta_u["speaker_id"].values[ph_mask]
+
+        # normalise each dimension to [0,1] for fair comparison
+        for dim in range(2):
+            min_val = X_ph[:, dim].min()
+            max_val = X_ph[:, dim].max()
+            if max_val > min_val:
+                X_ph[:, dim] = (X_ph[:, dim] - min_val) / (max_val - min_val)
+
+        for spk in speakers:
+            spk_mask = spk_ph == spk
+            if spk_mask.sum() == 0:
+                continue
+            ax.scatter(
+                X_ph[spk_mask, 0], X_ph[spk_mask, 1],
+                c=[SPK_CMAP[spk]], label=spk,
+                s=20, alpha=0.7
+            )
+
+        ax.set_xlim(-0.05, 1.05)
+        ax.set_ylim(-0.05, 1.05)
+        ax.set_title(f"/{phoneme}/", fontsize=12, fontweight="bold")
+        ax.set_xlabel("UMAP Dim 1 (normalised)")
+        ax.grid(alpha=0.2)
+
+    axes[0].set_ylabel("UMAP Dim 2 (normalised)")
+    axes[0].legend(fontsize=6, markerscale=1.5,
+                   bbox_to_anchor=(1.01, 1), loc="upper left")
+
+    safe = model_name.replace(" ", "_").lower()
+    fig.suptitle(
+        f"{model_name} UMAP — coloured by speaker\n"
+        f"(coordinates normalised per phoneme for fair comparison)",
+        fontsize=12, fontweight="bold"
+    )
+    plt.tight_layout()
+    plt.savefig(f"{OUTPUT_DIR}/neural_{safe}_umap_by_speaker.png",
+                dpi=150)
+    plt.close()
+    print(f"Saved neural_{safe}_umap_by_speaker.png")
+    
 print("\nAll neural visualisations done!")

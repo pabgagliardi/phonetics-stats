@@ -1,0 +1,263 @@
+stages:
+  parse_corpus:
+    cmd: python src/parse_corpus.py
+    deps:
+      - src/parse_corpus.py
+    params:
+      - corpus
+    outs:
+      - data/phonemes.csv:
+          cache: false
+
+  extract_acoustics:
+    cmd: python src/extract_acoustics.py
+    deps:
+      - src/extract_acoustics.py
+      - data/phonemes.csv
+    params:
+      - acoustic
+    outs:
+      - data/features_acoustic.csv:
+          cache: false
+
+  normalise:
+    cmd: python src/normalise.py
+    deps:
+      - src/normalise.py
+      - data/features_acoustic.csv
+    outs:
+      - data/features_acoustic_norm.csv:
+          cache: false
+
+  descriptive_stats:
+    cmd: python src/descriptive_stats.py
+    deps:
+      - src/descriptive_stats.py
+      - data/features_acoustic_norm.csv
+    outs:
+      - results/summary_table.csv:
+          cache: false
+      - results/variance_decomposition.csv:
+          cache: false
+      - results/plot_vowel_chart.png:
+          cache: false
+      - results/plot_boxplots.png:
+          cache: false
+      - results/plot_violin.png:
+          cache: false
+
+  extract_neural_whisper:
+    cmd: python src/extract_neural_whisper.py
+    deps:
+      - src/extract_neural_whisper.py
+      - data/phonemes.csv
+    params:
+      - whisper
+    outs:
+      - data/features_whisper_layer4.npz:
+          cache: false
+      - data/features_whisper_layer20.npz:
+          cache: false
+
+  extract_neural_xlsr:
+    cmd: python src/extract_neural_xlsr.py
+    deps:
+      - src/extract_neural_xlsr.py
+      - data/phonemes.csv
+    params:
+      - xlsr
+    outs:
+      - data/features_xlsr_layer4.npz:
+          cache: false
+      - data/features_xlsr_layer10.npz:
+          cache: false
+      - data/features_xlsr_layer20.npz:
+          cache: false
+
+  reduce_dimensions:
+    cmd: python src/reduce_dimensions.py
+    deps:
+      - src/reduce_dimensions.py
+      - data/features_whisper_layer4.npz
+      - data/features_whisper_layer20.npz
+      - data/features_xlsr_layer4.npz
+      - data/features_xlsr_layer10.npz
+      - data/features_xlsr_layer20.npz
+    params:
+      - pca
+    outs:
+      - data/features_whisper_layer4_pca2.npz:
+          cache: false
+      - data/features_whisper_layer4_pca50.npz:
+          cache: false
+      - data/features_whisper_layer4_umap2.npz:
+          cache: false
+      - data/features_whisper_layer20_pca2.npz:
+          cache: false
+      - data/features_whisper_layer20_pca50.npz:
+          cache: false
+      - data/features_whisper_layer20_umap2.npz:
+          cache: false
+      - data/features_xlsr_layer4_pca2.npz:
+          cache: false
+      - data/features_xlsr_layer4_pca50.npz:
+          cache: false
+      - data/features_xlsr_layer4_umap2.npz:
+          cache: false
+      - data/features_xlsr_layer10_pca2.npz:
+          cache: false
+      - data/features_xlsr_layer10_pca50.npz:
+          cache: false
+      - data/features_xlsr_layer10_umap2.npz:
+          cache: false
+      - data/features_xlsr_layer20_pca2.npz:
+          cache: false
+      - data/features_xlsr_layer20_pca50.npz:
+          cache: false
+      - data/features_xlsr_layer20_umap2.npz:
+          cache: false
+
+  visualise_neural:
+    cmd: python src/visualise_neural.py
+    deps:
+      - src/visualise_neural.py
+      - data/phonemes.csv
+      - data/features_whisper_layer4_pca2.npz
+      - data/features_whisper_layer4_pca50.npz
+      - data/features_whisper_layer4_umap2.npz
+      - data/features_whisper_layer20_pca2.npz
+      - data/features_whisper_layer20_pca50.npz
+      - data/features_whisper_layer20_umap2.npz
+      - data/features_xlsr_layer20_pca2.npz
+      - data/features_xlsr_layer20_pca50.npz
+      - data/features_xlsr_layer20_umap2.npz
+    outs:
+      - results/neural_variance_ratios.csv:
+          cache: false
+      - results/neural_similarity_ratios.csv:
+          cache: false
+
+  rsm_mantel:
+    cmd: python src/rsm_mantel.py
+    deps:
+      - src/rsm_mantel.py
+      - data/features_acoustic_norm.csv
+      - data/phonemes.csv
+      - data/features_whisper_layer20_pca50.npz
+      - data/features_xlsr_layer20_pca50.npz
+    outs:
+      - results/rsm_mantel_results.csv:
+          cache: false
+
+  statistical_tests:
+    cmd: python src/statistical_tests.py
+    deps:
+      - src/statistical_tests.py
+      - data/features_acoustic_norm.csv
+      - data/phonemes.csv
+      - data/features_whisper_layer20_pca50.npz
+      - data/features_xlsr_layer20_pca50.npz
+    outs:
+      - results/acoustic_l1l2_tests.csv:
+          cache: false
+      - results/gender_tests.csv:
+          cache: false
+      - results/mantel_results.csv:
+          cache: false
+      - results/plot_l1l2_forest.png:
+          cache: false
+      - results/plot_distance_matrices.png:
+          cache: false
+
+  neural_l1l2_test:
+    cmd: python src/neural_l1l2_test.py
+    deps:
+      - src/neural_l1l2_test.py
+      - data/phonemes.csv
+      - data/features_whisper_layer4_pca50.npz
+      - data/features_whisper_layer20_pca50.npz
+      - data/features_xlsr_layer4_pca50.npz
+      - data/features_xlsr_layer20_pca50.npz
+    outs:
+      - results/neural_l1l2_tests.csv:
+          cache: false
+      - results/plot_neural_l1l2.png:
+          cache: false
+
+  phoneme_distances:
+    cmd: python src/phoneme_distances.py
+    deps:
+      - src/phoneme_distances.py
+      - data/features_acoustic_norm.csv
+      - data/phonemes.csv
+      - data/features_whisper_layer20_pca50.npz
+      - data/features_xlsr_layer20_pca50.npz
+    params:
+      - distance
+    outs:
+      - results/mantel_distance_results.csv:
+          cache: false
+      - results/bootstrap_ci_distances.csv:
+          cache: false
+      - results/classifier_accuracy.csv:
+          cache: false
+      - results/mcnemar_results.csv:
+          cache: false
+
+  mixed_effects:
+    cmd: >
+      python src/mixed_effects.py &&
+      Rscript src/mixed_effects.R
+    deps:
+      - src/mixed_effects.py
+      - src/mixed_effects.R
+      - data/features_acoustic_norm.csv
+      - data/phonemes.csv
+      - data/features_whisper_layer20.npz
+      - data/features_xlsr_layer20.npz
+    outs:
+      - data/neural_pca5_for_r.csv:
+          cache: false
+      - results/lme_acoustic_output.txt:
+          cache: false
+      - results/lme_neural_output.txt:
+          cache: false
+      - results/r2_comparison.csv:
+          cache: false
+
+  rope_analysis:
+    cmd: python src/rope_analysis.py
+    deps:
+      - src/rope_analysis.py
+      - data/features_acoustic_norm.csv
+      - data/phonemes.csv
+      - data/features_whisper_layer20_pca50.npz
+      - data/features_xlsr_layer20_pca50.npz
+    outs:
+      - results/acoustic_cis.csv:
+          cache: false
+      - results/neural_cis.csv:
+          cache: false
+      - results/rope_classification.csv:
+          cache: false
+      - results/plot_forest_acoustic.png:
+          cache: false
+      - results/plot_forest_neural.png:
+          cache: false
+      - results/plot_rope_classification.png:
+          cache: false
+
+  clustering:
+    cmd: python src/clustering.py
+    deps:
+      - src/clustering.py
+      - data/features_acoustic_norm.csv
+      - data/features_acoustic.csv
+      - data/phonemes.csv
+      - data/features_whisper_layer20_pca50.npz
+      - data/features_xlsr_layer20_pca50.npz
+    params:
+      - clustering
+    outs:
+      - results/ari_results.csv:
+          cache: false
